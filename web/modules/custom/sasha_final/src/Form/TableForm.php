@@ -21,6 +21,13 @@ class TableForm extends FormBase {
   }
 
   /**
+   * Titles of the header.
+   *
+   * @var parent
+   */
+  protected $titles;
+
+  /**
    * Initial number of tables.
    *
    * @var int
@@ -44,8 +51,8 @@ class TableForm extends FormBase {
   /**
    * A function that returns a table header.
    */
-  public function addTitle(): array {
-    return [
+  public function buildTitles(): void {
+    $this->titles = [
       'Year' => $this->t('Year'),
       'January' => $this->t('Jan'),
       'February' => $this->t('Feb'),
@@ -88,9 +95,9 @@ class TableForm extends FormBase {
     $form['#attached']['library'][] = 'sasha_final/sasha_style';
     $form['#prefix'] = '<div id="form-wrapper">';
     $form['#suffix'] = '</div>';
-    $form['addtable'] = [
+    $form['addTable'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Add table'),
+      '#value' => $this->t('Add Table'),
       '#submit' => [
         '::addTable',
       ],
@@ -100,11 +107,11 @@ class TableForm extends FormBase {
       '#limit_validation_errors' => [],
 
     ];
-    $form['addrow'] = [
+    $form['addYear'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Add row'),
+      '#value' => $this->t('Add Year'),
       '#submit' => [
-        '::addRow',
+        '::addYear',
       ],
       '#ajax' => [
         'wrapper' => 'form-wrapper',
@@ -121,28 +128,44 @@ class TableForm extends FormBase {
         'wrapper' => 'form-wrapper',
       ],
     ];
-
-    $this->addTable($form, $form_state);
+    $this->buildTitles();
+    $this->buildTable($form, $form_state);
     return $form;
   }
 
   /**
    * Builds the structure of a table.
    */
-  protected function addTable(array &$form, FormStateInterface $form_state) {
-    // Call functions for build header.
-    $headers_cell = $this->addTitle();
+  protected function buildTable(array &$form, FormStateInterface $form_state) {
     // Loop for enumeration tables.
     for ($table_amount = 0; $table_amount < $this->tables; $table_amount++) {
       $table_key = 'table-' . ($table_amount + 1);
       // Set special attributes for each table.
       $form[$table_key] = [
         '#type' => 'table',
-        '#header' => $headers_cell,
+        '#header' => $this->titles,
       ];
       // Call functions for create rows.
-      //$this->rowCreating($form[$table_key], $form_state, $table_key);
+      $this->buildYear($form[$table_key], $form_state, $table_key);
     }
+  }
+
+  /**
+   * Adding another tables.
+   */
+  public function addTable(array &$form, FormStateInterface $form_state): array {
+    $this->tables++;
+    $form_state->setRebuild();
+    return $form;
+  }
+
+  /**
+   * Adding another rows.
+   */
+  public function addYear(array &$form, FormStateInterface $form_state): array {
+    $this->rows++;
+    $form_state->setRebuild();
+    return $form;
   }
 
   /**
@@ -155,7 +178,28 @@ class TableForm extends FormBase {
    * @param string $table_key
    *   Table number.
    */
-  public function rowCreating(array &$table, FormStateInterface $form_state, string $table_key) {
+  protected function buildYear(array &$table, FormStateInterface $form_state, string $table_key): void {
+
+    // Call functions for inactive header cell.
+    $inactive_cell = $this->inactiveStrings();
+    for ($row_amount = $this->rows; $row_amount > 0; $row_amount--) {
+      // Set special attributes for each cell.
+      foreach ($this->titles as $key => $value) {
+        $table[$row_amount][$key] = [
+          '#type' => 'number',
+          '#step' => 0.01,
+        ];
+        // Set default value for year cell.
+        $table[$row_amount]['Year']['#default_value'] = date("Y") + 1 - $row_amount;
+        if (array_key_exists($key, $inactive_cell)) {
+          // Set values for inactive cells.
+          $cell_value = $form_state->getValue([$table_key, $row_amount, $key]);
+          $table[$row_amount][$key]['#default_value'] = round($cell_value, 2);
+          // Disable inactive cells.
+          $table[$row_amount][$key]['#disabled'] = TRUE;
+        }
+      }
+    }
   }
 
   /**
