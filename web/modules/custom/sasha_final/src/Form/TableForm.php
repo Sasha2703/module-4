@@ -60,9 +60,9 @@ class TableForm extends FormBase {
       'Q1' => $this->t('Q1'),
       'April' => $this->t('Apr'),
       'May' => $this->t('May'),
-      'June' => $this->t('Jun'),
+      'June' => $this->t('June'),
       'Q2' => $this->t('Q2'),
-      'Jul' => $this->t('July'),
+      'July' => $this->t('July'),
       'August' => $this->t('Aug'),
       'September' => $this->t('Sep'),
       'Q3' => $this->t('Q3'),
@@ -138,8 +138,8 @@ class TableForm extends FormBase {
    */
   protected function buildTable(array &$form, FormStateInterface $form_state) {
     // Loop for enumeration tables.
-    for ($table_amount = 0; $table_amount < $this->tables; $table_amount++) {
-      $table_key = 'table-' . ($table_amount + 1);
+    for ($i = 0; $i < $this->tables; $i++) {
+      $table_key = 'table-' . ($i + 1);
       // Set special attributes for each table.
       $form[$table_key] = [
         '#type' => 'table',
@@ -181,39 +181,26 @@ class TableForm extends FormBase {
   protected function buildYear(array &$table, FormStateInterface $form_state, string $table_key) {
     // Call functions for inactive header cell.
     $inactive_cell = $this->inactiveStrings();
-    for ($row_amount = $this->rows; $row_amount > 0; $row_amount--) {
+    for ($i = $this->rows; $i > 0; $i--) {
       // Set special attributes for each cell.
       foreach ($this->titles as $key => $value) {
-        $table[$row_amount][$key] = [
+        $table[$i][$key] = [
           '#type' => 'number',
-          '#step' => 0.01,
+          '#step' => '0.01',
         ];
         // Set default value for year cell.
-        $table[$row_amount]['Year']['#default_value'] = date("Y") + 1 - $row_amount;
+        $table[$i]['Year']['#default_value'] = date("Y") + 1 - $i;
         if (array_key_exists($key, $inactive_cell)) {
           // Set values for inactive cells.
-          $cell_value = $form_state->getValue([$table_key, $row_amount, $key]);
-          $table[$row_amount][$key]['#default_value'] = round($cell_value, 2);
+          $cell_value = $form_state->getValue([$table_key, $i, $key]);
+          $table[$i][$key]['#default_value'] = round($cell_value, 2);
           // Disable inactive cells.
-          $table[$row_amount][$key]['#disabled'] = TRUE;
+          $table[$i][$key]['#disabled'] = TRUE;
         }
       }
     }
   }
 
-  public function arrayTransform($array): array {
-    $values = [];
-    $inactive_cells = $this->inactiveStrings();;
-    for ($i = $this->rows; $i > 0; $i--) {
-      // Setting array from active cells only.
-      foreach ($array[$i] as $key => $value) {
-        if (!array_key_exists($key, $inactive_cells)) {
-          $values[] = $value;
-        }
-      }
-    }
-    return $values;
-  }
   /**
    * {@inheritDoc}
    */
